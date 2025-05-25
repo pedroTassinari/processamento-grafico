@@ -1,1 +1,1 @@
-Temp readme.md
+Repositório para as atividades da disciplina de Processamento Gráfico do curso de Ciência da Computação.

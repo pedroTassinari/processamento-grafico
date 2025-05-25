@@ -1,0 +1,1 @@
+Os exercícios 1 e 2 foram feitos no mesmo arquivo.
