@@ -49,6 +49,7 @@ set(EXERCISES
     modulo2/exercicio3
     modulo3/m3JogoCores
     vivencial2/vivencial-2
+    modulo4/exe-modulo-4
 )
 
 add_compile_options(-Wno-pragmas)
