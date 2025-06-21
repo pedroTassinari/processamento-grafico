@@ -40,6 +40,7 @@ include_directories(${CMAKE_SOURCE_DIR}/common)
 include_directories(${CMAKE_SOURCE_DIR}/common/M5-6)
 include_directories(${CMAKE_SOURCE_DIR}/include/glad)
 include_directories(${glm_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/src/vivencial3/utils)
 
 
 # Lista de exemplos/exercícios podem ser colocados aqui também
@@ -50,6 +51,7 @@ set(EXERCISES
     modulo3/m3JogoCores
     vivencial2/vivencial-2
     modulo4/exe-modulo-4
+    vivencial3/vivencial-3
 )
 
 add_compile_options(-Wno-pragmas)
@@ -76,10 +78,23 @@ endif()
 # Cria os executáveis
 foreach(EXERCISE ${EXERCISES})
     # Extrai o nome do arquivo sem o diretório para o executável
-    get_filename_component(EXE_NAME ${EXERCISE} NAME)                                                                                                                                       
+    get_filename_component(EXE_NAME ${EXERCISE} NAME)
     
-    # Adiciona o executável usando o nome do arquivo como nome do executável
-    add_executable(${EXE_NAME} src/${EXERCISE}.cpp ${GLAD_C_FILE})
+    if (${EXE_NAME} STREQUAL "vivencial-3")
+        add_executable(${EXE_NAME}
+            src/${EXERCISE}.cpp
+            ${GLAD_C_FILE}
+            src/vivencial3/utils/gl_utils.cpp
+            src/vivencial3/utils/TileMap.cpp
+            src/vivencial3/utils/SlideView.cpp
+            src/vivencial3/utils/DiamondView.cpp
+            #src/vivencial3/utils/ltMath.cpp
+        )
+    else()
+      # Adiciona o executável usando o nome do arquivo como nome do executável
+      add_executable(${EXE_NAME} src/${EXERCISE}.cpp ${GLAD_C_FILE})
+    endif()
+    
 
     # Configura as bibliotecas e include dirs para o executável
     target_include_directories(${EXE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/glad ${glm_SOURCE_DIR} ${stb_image_SOURCE_DIR})
