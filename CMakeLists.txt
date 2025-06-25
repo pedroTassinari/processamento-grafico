@@ -52,6 +52,7 @@ set(EXERCISES
     vivencial2/vivencial-2
     modulo4/exe-modulo-4
     vivencial3/vivencial-3
+    modulo5/exe-modulo-5
 )
 
 add_compile_options(-Wno-pragmas)
@@ -90,7 +91,13 @@ foreach(EXERCISE ${EXERCISES})
             src/vivencial3/utils/DiamondView.cpp
             #src/vivencial3/utils/ltMath.cpp
         )
-    else()
+      elseif (${EXE_NAME} STREQUAL "exe-modulo-5")
+          add_executable(${EXE_NAME}
+          src/${EXERCISE}.cpp
+          ${GLAD_C_FILE}
+          src/vivencial3/utils/gl_utils.cpp
+        )
+      else()
       # Adiciona o executável usando o nome do arquivo como nome do executável
       add_executable(${EXE_NAME} src/${EXERCISE}.cpp ${GLAD_C_FILE})
     endif()
