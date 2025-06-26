@@ -39,6 +39,8 @@ float tileW, tileW2;
 float tileH, tileH2;
 int cx = -1, cy = -1;
 
+int prev_cx = -1, prev_cy = -1;
+int prev_tid = -1;
 
 // offset para centralizar ou ajustar o mapa na tela
 const float screenOffsetX = 0.9f;
@@ -393,6 +395,18 @@ int main()
 		cx = std::clamp(cx, 0, tmap->getWidth() - 1);
 		cy = std::clamp(cy, 0, tmap->getHeight() - 1);
 
+		// Restaura o tile anterior
+		if (prev_cx != -1 && prev_cy != -1 && prev_tid != -1)
+		{
+			tmap->setTile(prev_cx, prev_cy, prev_tid);
+		}
+
+		// Salva a posição e o tid atuais como "anteriores"
+		prev_cx = cx;
+		prev_cy = cy;
+		prev_tid = tmap->getTile(cx, cy);
+
+		// Modifica o tile atual
 		tmap->setTile(cx, cy, 6);
 
 		double mx, my;
