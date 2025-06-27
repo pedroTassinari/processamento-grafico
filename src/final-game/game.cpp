@@ -22,6 +22,8 @@
 #include "SlideView.h"
 #include "ltMath.h"
 #include <algorithm>
+#include <unordered_set>
+#include <sstream>
 
 using namespace std;
 
@@ -47,12 +49,50 @@ const float screenOffsetX = 0.9f;
 const float screenOffsetY = 0.7f;
 
 TilemapView *tview = new DiamondView();
-/* TilemapView *tview = new SlideView(); */
 TileMap *tmap = NULL;
 
 GLFWwindow *g_window = NULL;
 
+std::unordered_set<int> walkingTiles;
+std::unordered_set<int> blockTiles;
+std::unordered_set<int> deathTiles;
+
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+void tryMove(GLFWwindow *window, int newX, int newY);
+bool canWalk(int tileId);
+bool isBlocked(int tileId);
+bool isDeadly(int tileId);
+void getNextPosition(int direction, int &newX, int &newY);
+
+std::unordered_set<int> readTiles(const char *filename)
+{
+	std::ifstream arq(filename);
+	std::unordered_set<int> tiles;
+	if (!arq.is_open())
+	{
+		printf("ERROR: Could not open file %s\n", filename);
+		return tiles;
+	}
+
+	std::string line;
+	while (std::getline(arq, line))
+	{
+		if (line.empty())
+			continue; // pular linhas vazias
+
+		std::stringstream ss(line);
+		int tid;
+		while (ss >> tid)
+		{
+			tiles.insert(tid);
+			printf("%d ", tid); // debug para mostrar os tiles lidos
+		}
+		printf("\n");
+	}
+
+	arq.close();
+	return tiles;
+}
 
 TileMap *readMap(const char *filename)
 {
@@ -244,6 +284,10 @@ int main()
 
 	tmap->setTid(tid);
 	cout << "Tmap inicializado" << endl;
+
+	walkingTiles = readTiles("../src/final-game/config/walking-tiles.txt");
+	blockTiles = readTiles("../src/final-game/config/block-tiles.txt");
+	deathTiles = readTiles("../src/final-game/config/death-tiles.txt");
 
 	// LOAD TEXTURES
 
@@ -437,36 +481,97 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 		return;
 	}
 
+	int newX, newY;
+
 	if (action == GLFW_PRESS)
 	{
 		switch (key)
 		{
 		case GLFW_KEY_W:
-			tview->computeTileWalking(cx, cy, 4); // Norte
+			getNextPosition(4, newX, newY); // Norte
 			break;
 		case GLFW_KEY_S:
-			tview->computeTileWalking(cx, cy, 0); // Sul
+			getNextPosition(0, newX, newY); // Sul
 			break;
 		case GLFW_KEY_D:
-			tview->computeTileWalking(cx, cy, 2); // Leste
+			getNextPosition(2, newX, newY); // Leste
 			break;
 		case GLFW_KEY_A:
-			tview->computeTileWalking(cx, cy, 6); // Oeste
+			getNextPosition(6, newX, newY); // Oeste
 			break;
 		case GLFW_KEY_E:
-			tview->computeTileWalking(cx, cy, 3); // Sudeste
+			getNextPosition(3, newX, newY); // Sudeste
 			break;
 		case GLFW_KEY_Q:
-			tview->computeTileWalking(cx, cy, 7); // Noroeste
+			getNextPosition(7, newX, newY); // Noroeste
 			break;
 		case GLFW_KEY_Z:
-			tview->computeTileWalking(cx, cy, 5); // Sudoeste
+			getNextPosition(5, newX, newY); // Sudoeste
 			break;
 		case GLFW_KEY_C:
-			tview->computeTileWalking(cx, cy, 1); // Nordeste
+			getNextPosition(1, newX, newY); // Nordeste
 			break;
 		default:
 			break;
 		}
+
+		tryMove(window, newX, newY); // ← decide se move ou não
 	}
+}
+
+void tryMove(GLFWwindow *window, int newX, int newY)
+{
+	if (newX < 0 || newX >= tmap->getWidth() || newY < 0 || newY >= tmap->getHeight())
+	{
+		printf("Invalid position: (%d, %d)\n", newX, newY);
+		return;
+	}
+
+	int tileId = tmap->getTile(newX, newY);
+
+	if (isBlocked(tileId))
+	{
+		printf("Tile %d is blocked, cannot move there.\n", tileId);
+		return;
+	}
+
+	if (isDeadly(tileId))
+	{
+		printf("Tile %d is deadly, game over\n", tileId);
+		glfwSetWindowShouldClose(window, GL_TRUE);
+		return;
+	}
+
+	if (canWalk(tileId))
+	{
+		printf("Walking to tile: %d\n", tileId);
+		cx = newX;
+		cy = newY;
+	}
+	else
+	{
+		printf("Tile %d is not walkable\n", tileId);
+	}
+}
+
+bool canWalk(int tileId)
+{
+	return walkingTiles.count(tileId) > 0;
+}
+
+bool isBlocked(int tileId)
+{
+	return blockTiles.count(tileId) > 0;
+}
+
+bool isDeadly(int tileId)
+{
+	return deathTiles.count(tileId) > 0;
+}
+
+void getNextPosition(int direction, int &newX, int &newY)
+{
+	newX = cx;
+	newY = cy;
+	tview->computeTileWalking(newX, newY, direction);
 }
