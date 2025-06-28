@@ -25,7 +25,13 @@
 #include <unordered_set>
 #include <sstream>
 
+// GLM
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 using namespace std;
+using namespace glm;
 
 int g_gl_width = 800;
 int g_gl_height = 800;
@@ -63,6 +69,15 @@ bool canWalk(int tileId);
 bool isBlocked(int tileId);
 bool isDeadly(int tileId);
 void getNextPosition(int direction, int &newX, int &newY);
+
+struct Character
+{
+	int x;
+	int y;
+	GLuint texture;
+};
+
+Character player;
 
 std::unordered_set<int> readTiles(const char *filename)
 {
@@ -149,7 +164,7 @@ void loadTexture(unsigned int &texture, const char *filename)
 	}
 	else
 	{
-		std::cout << "Failed to load texture" << std::endl;
+		printf("Error loading texture: %s\n", filename);
 	}
 	stbi_image_free(data);
 }
@@ -278,9 +293,13 @@ int main()
 
 	GLuint tid;
 	loadTexture(tid, "../src/final-game/assets/tilesetIso.png");
+
 	GLuint characterTexture;
-	/* loadTexture(characterTexture, "../assets/vivencial-3/character.png"); */
-	/* printf("characterTexture Texture carregada: %d\n", characterTexture); */
+	loadTexture(characterTexture, "../src/final-game/assets/character.png");
+	printf("Character texture loaded: %d\n", characterTexture);
+
+	// Inicializa personagem em uma posição qualquer válida
+	player = {1, 1, characterTexture}; // ou outra coordenada válida
 
 	tmap->setTid(tid);
 	cout << "Tmap inicializado" << endl;
@@ -305,7 +324,38 @@ int main()
 		3, 1, 2	 // second triangle
 	};
 
-	unsigned int VBO, VAO, EBO;
+	float characterVertices[] = {
+		// positions     // texCoords
+		1.0f,
+		1.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		-1.0f,
+		1.0f,
+		1.0f,
+		-1.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		-1.0f,
+		-1.0f,
+		0.0f,
+		1.0f,
+	}; 
+
+	/* float characterVertices[] = {
+		// x   y    z    s     t
+		0.0,  th/2.0f,   0.0, 0.0,    /2.0f, //A
+		tw/2.0f, th,     0.0, ds/2.0f, dt,     //B
+		tw/2.0f, 0.0,    0.0, ds/2.0f, 0.0,    //D
+		tw,     th/2.0f, 0.0, ds,     dt/2.0f  //C
+	}; */
+
+	// Map
+
+	unsigned int VBO,
+		VAO, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -324,6 +374,50 @@ int main()
 	// texture coord attribute
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+
+	// Character
+	unsigned int characterVAO, characterVBO, characterEBO;
+	//
+
+	glGenVertexArrays(1, &characterVAO);
+	glGenBuffers(1, &characterVBO);
+	glGenBuffers(1, &characterEBO);
+
+	glBindVertexArray(characterVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, characterVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(characterVertices), characterVertices, GL_STATIC_DRAW);
+
+	// posição
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(0);
+	// coordenadas de textura
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	////
+
+	/* glGenVertexArrays(1, &characterVAO);
+	glGenBuffers(1, &characterVBO);
+	glGenBuffers(1, &characterEBO);
+
+	glBindVertexArray(characterVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, characterVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(characterVertices), characterVertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, characterEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(characterIndices), characterIndices, GL_STATIC_DRAW);
+
+	// Atributo de posição (location = 0)
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(0);
+
+	// Atributo de textura (location = 1)
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+ */
+	glBindVertexArray(0); // opcional, por segurança
 
 	char vertex_shader[1024 * 256];
 	char fragment_shader[1024 * 256];
@@ -385,6 +479,9 @@ int main()
 		cout << endl;
 	}
 
+	mat4 projection = ortho(0.0, 800.0, 600.0, 0.0, -1.0, 1.0);
+	glUniformMatrix4fv(glGetUniformLocation(shader_programme, "projection"), 1, GL_FALSE, value_ptr(projection));
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -434,6 +531,34 @@ int main()
 			}
 		}
 
+		// ======================
+		// Desenhar personagem
+		// ======================
+		/* tview->computeDrawPosition(player.x, player.y, tw, th, x, y);
+
+		glm::mat4 model = glm::mat4(1);
+		model = translate(model, vec3(player.x, player.y, 0.0));
+		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "model"), 1, GL_FALSE, glm::value_ptr(model)); // sem highlight
+
+		glUniform1f(glGetUniformLocation(shader_programme, "offsetx"), 0.0f); // ajuste se for spritesheet
+		glUniform1f(glGetUniformLocation(shader_programme, "offsety"), 0.0f);
+		glUniform1f(glGetUniformLocation(shader_programme, "tx"), player.x);
+		glUniform1f(glGetUniformLocation(shader_programme, "ty"), player.y); // levemente acima
+		glUniform1f(glGetUniformLocation(shader_programme, "layer_z"), -0.1f);
+		glUniform1f(glGetUniformLocation(shader_programme, "weight"), 0.0f); // sem highlight
+
+		vec2 offsetTex;
+
+		offsetTex.s = 0.0;
+		offsetTex.t = 0.0;
+		glUniform2f(glGetUniformLocation(shader_programme, "offsetTex"), offsetTex.s, offsetTex.t);
+
+		glBindVertexArray(characterVAO);
+		glBindTexture(GL_TEXTURE_2D, player.texture);
+
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); */
+
 		glfwPollEvents();
 
 		cx = std::clamp(cx, 0, tmap->getWidth() - 1);
@@ -452,6 +577,9 @@ int main()
 
 		// Modifica o tile atual
 		tmap->setTile(cx, cy, 6);
+
+/* 		player.x = cx;
+		player.y = cy; */
 
 		double mx, my;
 		glfwGetCursorPos(g_window, &mx, &my);
