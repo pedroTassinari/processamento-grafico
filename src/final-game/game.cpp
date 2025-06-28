@@ -330,24 +330,12 @@ int main()
 	};
 
 	float characterVertices[] = {
-		// positions     // texCoords
-		1.0f,
-		1.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		-1.0f,
-		1.0f,
-		1.0f,
-		-1.0f,
-		1.0f,
-		0.0f,
-		0.0f,
-		-1.0f,
-		-1.0f,
-		0.0f,
-		1.0f,
-	}; 
+		// x,        y,        s,    t
+		-0.0625f, 0.0625f, 0.0f, 0.0f,	// Top-left
+		-0.0625f, -0.0625f, 0.0f, 1.0f, // Bottom-left
+		0.0625f, 0.0625f, 1.0f, 0.0f,	// Top-right
+		0.0625f, -0.0625f, 1.0f, 1.0f	// Bottom-right
+	};
 
 	/* float characterVertices[] = {
 		// x   y    z    s     t
@@ -484,9 +472,6 @@ int main()
 		cout << endl;
 	}
 
-	mat4 projection = ortho(0.0, 800.0, 600.0, 0.0, -1.0, 1.0);
-	glUniformMatrix4fv(glGetUniformLocation(shader_programme, "projection"), 1, GL_FALSE, value_ptr(projection));
-
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -539,30 +524,18 @@ int main()
 		// ======================
 		// Desenhar personagem
 		// ======================
-		/* tview->computeDrawPosition(player.x, player.y, tw, th, x, y);
-
-		glm::mat4 model = glm::mat4(1);
-		model = translate(model, vec3(player.x, player.y, 0.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 1.0f));
-		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "model"), 1, GL_FALSE, glm::value_ptr(model)); // sem highlight
+		tview->computeDrawPosition(player.x, player.y, tw, th, x, y);
 
 		glUniform1f(glGetUniformLocation(shader_programme, "offsetx"), 0.0f); // ajuste se for spritesheet
 		glUniform1f(glGetUniformLocation(shader_programme, "offsety"), 0.0f);
-		glUniform1f(glGetUniformLocation(shader_programme, "tx"), player.x);
-		glUniform1f(glGetUniformLocation(shader_programme, "ty"), player.y); // levemente acima
+		glUniform1f(glGetUniformLocation(shader_programme, "tx"), x - 0.03 /* + screenOffsetX */);
+		glUniform1f(glGetUniformLocation(shader_programme, "ty"), y - 0.22 /* + screenOffsetY */);
 		glUniform1f(glGetUniformLocation(shader_programme, "layer_z"), -0.1f);
 		glUniform1f(glGetUniformLocation(shader_programme, "weight"), 0.0f); // sem highlight
 
-		vec2 offsetTex;
-
-		offsetTex.s = 0.0;
-		offsetTex.t = 0.0;
-		glUniform2f(glGetUniformLocation(shader_programme, "offsetTex"), offsetTex.s, offsetTex.t);
-
 		glBindVertexArray(characterVAO);
 		glBindTexture(GL_TEXTURE_2D, player.texture);
-
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); */
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		glfwPollEvents();
 
@@ -583,8 +556,8 @@ int main()
 		// Modifica o tile atual
 		tmap->setTile(cx, cy, 6);
 
-/* 		player.x = cx;
-		player.y = cy; */
+		player.x = cx;
+		player.y = cy;
 
 		double mx, my;
 		glfwGetCursorPos(g_window, &mx, &my);
@@ -696,10 +669,6 @@ void tryMove(GLFWwindow *window, int newX, int newY)
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			return;
 		}
-	}
-	else
-	{
-		printf("Tile %d is not walkable\n", tileId);
 	}
 }
 
