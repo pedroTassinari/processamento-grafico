@@ -54,6 +54,8 @@ int prev_tid = -1;
 const float screenOffsetX = 0.9f;
 const float screenOffsetY = 0.7f;
 
+int coinsCollected = 0;
+
 TilemapView *tview = new DiamondView();
 TileMap *tmap = NULL;
 
@@ -62,12 +64,14 @@ GLFWwindow *g_window = NULL;
 std::unordered_set<int> walkingTiles;
 std::unordered_set<int> blockTiles;
 std::unordered_set<int> deathTiles;
+std::unordered_set<int> coinTiles;
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
 void tryMove(GLFWwindow *window, int newX, int newY);
 bool canWalk(int tileId);
 bool isBlocked(int tileId);
 bool isDeadly(int tileId);
+bool isCoin(int tileId);
 void getNextPosition(int direction, int &newX, int &newY);
 
 struct Character
@@ -307,6 +311,7 @@ int main()
 	walkingTiles = readTiles("../src/final-game/config/walking-tiles.txt");
 	blockTiles = readTiles("../src/final-game/config/block-tiles.txt");
 	deathTiles = readTiles("../src/final-game/config/death-tiles.txt");
+	coinTiles = readTiles("../src/final-game/config/coin-tiles.txt");
 
 	// LOAD TEXTURES
 
@@ -666,6 +671,7 @@ void tryMove(GLFWwindow *window, int newX, int newY)
 	if (isDeadly(tileId))
 	{
 		printf("Tile %d is deadly, game over\n", tileId);
+		printf("You collected %d coins before dying.\n", coinsCollected);
 		glfwSetWindowShouldClose(window, GL_TRUE);
 		return;
 	}
@@ -675,6 +681,21 @@ void tryMove(GLFWwindow *window, int newX, int newY)
 		printf("Walking to tile: %d\n", tileId);
 		cx = newX;
 		cy = newY;
+	}
+
+	if (isCoin(tileId))
+	{
+		coinsCollected++;
+		printf("Coin collected! Total coins: %d\n", coinsCollected);
+		tmap->setTile(newX, newY, 1); // Remove the coin tile
+		cx = newX;
+		cy = newY;
+		if (coinsCollected >= 10)
+		{
+			printf("You collected enough coins! You win!\n");
+			glfwSetWindowShouldClose(window, GL_TRUE);
+			return;
+		}
 	}
 	else
 	{
@@ -695,6 +716,11 @@ bool isBlocked(int tileId)
 bool isDeadly(int tileId)
 {
 	return deathTiles.count(tileId) > 0;
+}
+
+bool isCoin(int tileId)
+{
+	return coinTiles.count(tileId) > 0;
 }
 
 void getNextPosition(int direction, int &newX, int &newY)
